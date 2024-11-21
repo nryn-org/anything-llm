@@ -88,7 +88,6 @@ function apiAdminEndpoints(app) {
     #swagger.requestBody = {
         description: 'Key pair object that will define the new user to add to the system.',
         required: true,
-        type: 'object',
         content: {
           "application/json": {
             example: {
@@ -143,7 +142,6 @@ function apiAdminEndpoints(app) {
   app.post("/v1/admin/users/:id", [validApiKey], async (request, response) => {
     /*
     #swagger.tags = ['Admin']
-    #swagger.path = '/v1/admin/users/{id}'
     #swagger.parameters['id'] = {
       in: 'path',
       description: 'id of the user in the database.',
@@ -154,7 +152,6 @@ function apiAdminEndpoints(app) {
     #swagger.requestBody = {
         description: 'Key pair object that will update the found user. All fields are optional and will not update unless specified.',
         required: true,
-        type: 'object',
         content: {
           "application/json": {
             example: {
@@ -221,7 +218,6 @@ function apiAdminEndpoints(app) {
       /*
     #swagger.tags = ['Admin']
     #swagger.description = 'Delete existing user by id. Methods are disabled until multi user mode is enabled via the UI.'
-    #swagger.path = '/v1/admin/users/{id}'
     #swagger.parameters['id'] = {
       in: 'path',
       description: 'id of the user in the database.',
@@ -323,7 +319,6 @@ function apiAdminEndpoints(app) {
     #swagger.requestBody = {
         description: 'Request body for creation parameters of the invitation',
         required: false,
-        type: 'object',
         content: {
           "application/json": {
             example: {
@@ -382,7 +377,6 @@ function apiAdminEndpoints(app) {
       /*
     #swagger.tags = ['Admin']
     #swagger.description = 'Deactivates (soft-delete) invite by id. Methods are disabled until multi user mode is enabled via the UI.'
-    #swagger.path = '/v1/admin/invite/{id}'
     #swagger.parameters['id'] = {
       in: 'path',
       description: 'id of the invite in the database.',
@@ -432,7 +426,6 @@ function apiAdminEndpoints(app) {
     async (request, response) => {
       /*
       #swagger.tags = ['Admin']
-      #swagger.path = '/v1/admin/workspaces/{workspaceId}/users'
       #swagger.parameters['workspaceId'] = {
         in: 'path',
         description: 'id of the workspace.',
@@ -487,7 +480,6 @@ function apiAdminEndpoints(app) {
     async (request, response) => {
       /*
     #swagger.tags = ['Admin']
-    #swagger.path = '/v1/admin/workspaces/{workspaceId}/update-users'
     #swagger.parameters['workspaceId'] = {
       in: 'path',
       description: 'id of the workspace in the database.',
@@ -498,7 +490,6 @@ function apiAdminEndpoints(app) {
     #swagger.requestBody = {
         description: 'Entire array of user ids who can access the workspace. All fields are optional and will not update unless specified.',
         required: true,
-        type: 'object',
         content: {
           "application/json": {
             example: {
@@ -558,7 +549,6 @@ function apiAdminEndpoints(app) {
     #swagger.requestBody = {
         description: 'Page offset to show of workspace chats. All fields are optional and will not update unless specified.',
         required: false,
-        type: 'integer',
         content: {
           "application/json": {
             example: {
@@ -605,56 +595,6 @@ function apiAdminEndpoints(app) {
     }
   );
 
-  app.get("/v1/admin/preferences", [validApiKey], async (request, response) => {
-    /*
-    #swagger.tags = ['Admin']
-    #swagger.description = 'Show all multi-user preferences for instance. Methods are disabled until multi user mode is enabled via the UI.'
-    #swagger.responses[200] = {
-      content: {
-        "application/json": {
-          schema: {
-            type: 'object',
-            example: {
-              settings: {
-                limit_user_messages: false,
-                message_limit: 10,
-              }
-            }
-          }
-        }
-      }
-    }
-    #swagger.responses[403] = {
-      schema: {
-        "$ref": "#/definitions/InvalidAPIKey"
-      }
-    }
-     #swagger.responses[401] = {
-      description: "Instance is not in Multi-User mode. Method denied",
-    }
-    */
-    try {
-      if (!multiUserMode(response)) {
-        response.sendStatus(401).end();
-        return;
-      }
-
-      const settings = {
-        limit_user_messages:
-          (await SystemSettings.get({ label: "limit_user_messages" }))
-            ?.value === "true",
-        message_limit:
-          Number(
-            (await SystemSettings.get({ label: "message_limit" }))?.value
-          ) || 10,
-      };
-      response.status(200).json({ settings });
-    } catch (e) {
-      console.error(e);
-      response.sendStatus(500).end();
-    }
-  });
-
   app.post(
     "/v1/admin/preferences",
     [validApiKey],
@@ -665,12 +605,10 @@ function apiAdminEndpoints(app) {
     #swagger.requestBody = {
       description: 'Object with setting key and new value to set. All keys are optional and will not update unless specified.',
       required: true,
-      type: 'object',
       content: {
         "application/json": {
           example: {
-            limit_user_messages: true,
-            message_limit: 5,
+            support_email: "support@example.com",
           }
         }
       }

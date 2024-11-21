@@ -213,6 +213,13 @@ const KEY_MAPPING = {
   },
 
   // AWS Bedrock LLM InferenceSettings
+  AwsBedrockLLMConnectionMethod: {
+    envKey: "AWS_BEDROCK_LLM_CONNECTION_METHOD",
+    checks: [
+      (input) =>
+        ["iam", "sessionToken"].includes(input) ? null : "Invalid value",
+    ],
+  },
   AwsBedrockLLMAccessKeyId: {
     envKey: "AWS_BEDROCK_LLM_ACCESS_KEY_ID",
     checks: [isNotEmpty],
@@ -220,6 +227,10 @@ const KEY_MAPPING = {
   AwsBedrockLLMAccessKey: {
     envKey: "AWS_BEDROCK_LLM_ACCESS_KEY",
     checks: [isNotEmpty],
+  },
+  AwsBedrockLLMSessionToken: {
+    envKey: "AWS_BEDROCK_LLM_SESSION_TOKEN",
+    checks: [],
   },
   AwsBedrockLLMRegion: {
     envKey: "AWS_BEDROCK_LLM_REGION",
@@ -350,6 +361,16 @@ const KEY_MAPPING = {
     checks: [isNotEmpty],
   },
 
+  // Fireworks AI Options
+  FireworksAiLLMApiKey: {
+    envKey: "FIREWORKS_AI_LLM_API_KEY",
+    checks: [isNotEmpty],
+  },
+  FireworksAiLLMModelPref: {
+    envKey: "FIREWORKS_AI_LLM_MODEL_PREF",
+    checks: [isNotEmpty],
+  },
+
   // Perplexity Options
   PerplexityApiKey: {
     envKey: "PERPLEXITY_API_KEY",
@@ -371,6 +392,20 @@ const KEY_MAPPING = {
   },
   OpenRouterTimeout: {
     envKey: "OPENROUTER_TIMEOUT_MS",
+    checks: [],
+  },
+
+  // Novita Options
+  NovitaLLMApiKey: {
+    envKey: "NOVITA_LLM_API_KEY",
+    checks: [isNotEmpty],
+  },
+  NovitaLLMModelPref: {
+    envKey: "NOVITA_LLM_MODEL_PREF",
+    checks: [isNotEmpty],
+  },
+  NovitaLLMTimeout: {
+    envKey: "NOVITA_LLM_TIMEOUT_MS",
     checks: [],
   },
 
@@ -435,6 +470,14 @@ const KEY_MAPPING = {
     envKey: "AGENT_GSE_KEY",
     checks: [],
   },
+  AgentSearchApiKey: {
+    envKey: "AGENT_SEARCHAPI_API_KEY",
+    checks: [],
+  },
+  AgentSearchApiEngine: {
+    envKey: "AGENT_SEARCHAPI_ENGINE",
+    checks: [],
+  },
   AgentSerperApiKey: {
     envKey: "AGENT_SERPER_DEV_KEY",
     checks: [],
@@ -449,6 +492,10 @@ const KEY_MAPPING = {
   },
   AgentSearXNGApiUrl: {
     envKey: "AGENT_SEARXNG_API_URL",
+    checks: [],
+  },
+  AgentTavilyApiKey: {
+    envKey: "AGENT_TAVILY_API_KEY",
     checks: [],
   },
 
@@ -482,6 +529,50 @@ const KEY_MAPPING = {
   TTSPiperTTSVoiceModel: {
     envKey: "TTS_PIPER_VOICE_MODEL",
     checks: [],
+  },
+
+  // OpenAI Generic TTS
+  TTSOpenAICompatibleKey: {
+    envKey: "TTS_OPEN_AI_COMPATIBLE_KEY",
+    checks: [],
+  },
+  TTSOpenAICompatibleVoiceModel: {
+    envKey: "TTS_OPEN_AI_COMPATIBLE_VOICE_MODEL",
+    checks: [isNotEmpty],
+  },
+  TTSOpenAICompatibleEndpoint: {
+    envKey: "TTS_OPEN_AI_COMPATIBLE_ENDPOINT",
+    checks: [isValidURL],
+  },
+
+  // DeepSeek Options
+  DeepSeekApiKey: {
+    envKey: "DEEPSEEK_API_KEY",
+    checks: [isNotEmpty],
+  },
+  DeepSeekModelPref: {
+    envKey: "DEEPSEEK_MODEL_PREF",
+    checks: [isNotEmpty],
+  },
+
+  // APIPie Options
+  ApipieLLMApiKey: {
+    envKey: "APIPIE_LLM_API_KEY",
+    checks: [isNotEmpty],
+  },
+  ApipieLLMModelPref: {
+    envKey: "APIPIE_LLM_MODEL_PREF",
+    checks: [isNotEmpty],
+  },
+
+  // xAI Options
+  XAIApiKey: {
+    envKey: "XAI_LLM_API_KEY",
+    checks: [isNotEmpty],
+  },
+  XAIModelPref: {
+    envKey: "XAI_LLM_MODEL_PREF",
+    checks: [isNotEmpty],
   },
 };
 
@@ -547,6 +638,7 @@ function supportedTTSProvider(input = "") {
     "openai",
     "elevenlabs",
     "piper_local",
+    "generic-openai",
   ].includes(input);
   return validSelection ? null : `${input} is not a valid TTS provider.`;
 }
@@ -572,10 +664,12 @@ function supportedLLM(input = "") {
     "ollama",
     "native",
     "togetherai",
+    "fireworksai",
     "mistral",
     "huggingface",
     "perplexity",
     "openrouter",
+    "novita",
     "groq",
     "koboldcpp",
     "textgenwebui",
@@ -583,6 +677,9 @@ function supportedLLM(input = "") {
     "litellm",
     "generic-openai",
     "bedrock",
+    "deepseek",
+    "apipie",
+    "xai",
   ].includes(input);
   return validSelection ? null : `${input} is not a valid LLM provider.`;
 }
@@ -601,6 +698,11 @@ function validGeminiModel(input = "") {
     "gemini-1.5-pro-latest",
     "gemini-1.5-flash-latest",
     "gemini-1.5-pro-exp-0801",
+    "gemini-1.5-pro-exp-0827",
+    "gemini-1.5-flash-exp-0827",
+    "gemini-1.5-flash-8b-exp-0827",
+    "gemini-exp-1114",
+    "learnlm-1.5-pro-experimental",
   ];
   return validModels.includes(input)
     ? null
@@ -624,9 +726,13 @@ function validAnthropicModel(input = "") {
     "claude-instant-1.2",
     "claude-2.0",
     "claude-2.1",
-    "claude-3-opus-20240229",
-    "claude-3-sonnet-20240229",
     "claude-3-haiku-20240307",
+    "claude-3-sonnet-20240229",
+    "claude-3-opus-latest",
+    "claude-3-5-haiku-latest",
+    "claude-3-5-haiku-20241022",
+    "claude-3-5-sonnet-latest",
+    "claude-3-5-sonnet-20241022",
     "claude-3-5-sonnet-20240620",
   ];
   return validModels.includes(input)
@@ -823,6 +929,10 @@ function dumpENV() {
     "ENABLE_HTTPS",
     "HTTPS_CERT_PATH",
     "HTTPS_KEY_PATH",
+    // Other Configuration Keys
+    "DISABLE_VIEW_CHAT_HISTORY",
+    // Simple SSO
+    "SIMPLE_SSO_ENABLED",
   ];
 
   // Simple sanitization of each value to prevent ENV injection via newline or quote escaping.

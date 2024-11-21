@@ -4,6 +4,7 @@ const {
   clientAbortedHandler,
 } = require("../../helpers/chat/responses");
 const { NativeEmbedder } = require("../../EmbeddingEngines/native");
+const { MODEL_MAP } = require("../modelMap");
 
 class AnthropicLLM {
   constructor(embedder = null, modelPreference = null) {
@@ -32,25 +33,12 @@ class AnthropicLLM {
     return "streamGetChatCompletion" in this;
   }
 
+  static promptWindowLimit(modelName) {
+    return MODEL_MAP.anthropic[modelName] ?? 100_000;
+  }
+
   promptWindowLimit() {
-    switch (this.model) {
-      case "claude-instant-1.2":
-        return 100_000;
-      case "claude-2.0":
-        return 100_000;
-      case "claude-2.1":
-        return 200_000;
-      case "claude-3-opus-20240229":
-        return 200_000;
-      case "claude-3-sonnet-20240229":
-        return 200_000;
-      case "claude-3-haiku-20240307":
-        return 200_000;
-      case "claude-3-5-sonnet-20240620":
-        return 200_000;
-      default:
-        return 100_000; // assume a claude-instant-1.2 model
-    }
+    return MODEL_MAP.anthropic[this.model] ?? 100_000;
   }
 
   isValidChatCompletionModel(modelName = "") {
@@ -58,9 +46,13 @@ class AnthropicLLM {
       "claude-instant-1.2",
       "claude-2.0",
       "claude-2.1",
-      "claude-3-opus-20240229",
-      "claude-3-sonnet-20240229",
       "claude-3-haiku-20240307",
+      "claude-3-sonnet-20240229",
+      "claude-3-opus-latest",
+      "claude-3-5-haiku-latest",
+      "claude-3-5-haiku-20241022",
+      "claude-3-5-sonnet-latest",
+      "claude-3-5-sonnet-20241022",
       "claude-3-5-sonnet-20240620",
     ];
     return validModels.includes(modelName);

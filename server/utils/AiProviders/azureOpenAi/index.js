@@ -5,7 +5,7 @@ const {
 } = require("../../helpers/chat/responses");
 
 class AzureOpenAiLLM {
-  constructor(embedder = null, _modelPreference = null) {
+  constructor(embedder = null, modelPreference = null) {
     const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
     if (!process.env.AZURE_OPENAI_ENDPOINT)
       throw new Error("No Azure API endpoint was set.");
@@ -16,7 +16,7 @@ class AzureOpenAiLLM {
       process.env.AZURE_OPENAI_ENDPOINT,
       new AzureKeyCredential(process.env.AZURE_OPENAI_KEY)
     );
-    this.model = process.env.OPEN_MODEL_PREF;
+    this.model = modelPreference ?? process.env.OPEN_MODEL_PREF;
     this.limits = {
       history: this.promptWindowLimit() * 0.15,
       system: this.promptWindowLimit() * 0.15,
@@ -43,6 +43,12 @@ class AzureOpenAiLLM {
     return "streamGetChatCompletion" in this;
   }
 
+  static promptWindowLimit(_modelName) {
+    return !!process.env.AZURE_OPENAI_TOKEN_LIMIT
+      ? Number(process.env.AZURE_OPENAI_TOKEN_LIMIT)
+      : 4096;
+  }
+
   // Sure the user selected a proper value for the token limit
   // could be any of these https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#gpt-4-models
   // and if undefined - assume it is the lowest end.
@@ -59,17 +65,47 @@ class AzureOpenAiLLM {
     return true;
   }
 
+  /**
+   * Generates appropriate content array for a message + attachments.
+   * @param {{userPrompt:string, attachments: import("../../helpers").Attachment[]}}
+   * @returns {string|object[]}
+   */
+  #generateContent({ userPrompt, attachments = [] }) {
+    if (!attachments.length) {
+      return userPrompt;
+    }
+
+    const content = [{ type: "text", text: userPrompt }];
+    for (let attachment of attachments) {
+      content.push({
+        type: "image_url",
+        imageUrl: {
+          url: attachment.contentString,
+        },
+      });
+    }
+    return content.flat();
+  }
+
   constructPrompt({
     systemPrompt = "",
     contextTexts = [],
     chatHistory = [],
     userPrompt = "",
+    attachments = [], // This is the specific attachment for only this prompt
   }) {
     const prompt = {
       role: "system",
       content: `${systemPrompt}${this.#appendContext(contextTexts)}`,
     };
-    return [prompt, ...chatHistory, { role: "user", content: userPrompt }];
+    return [
+      prompt,
+      ...chatHistory,
+      {
+        role: "user",
+        content: this.#generateContent({ userPrompt, attachments }),
+      },
+    ];
   }
 
   async getChatCompletion(messages = [], { temperature = 0.7 }) {

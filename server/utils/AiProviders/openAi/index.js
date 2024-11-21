@@ -2,6 +2,7 @@ const { NativeEmbedder } = require("../../EmbeddingEngines/native");
 const {
   handleDefaultStreamResponseV2,
 } = require("../../helpers/chat/responses");
+const { MODEL_MAP } = require("../modelMap");
 
 class OpenAiLLM {
   constructor(embedder = null, modelPreference = null) {
@@ -22,6 +23,14 @@ class OpenAiLLM {
     this.defaultTemp = 0.7;
   }
 
+  /**
+   * Check if the model is an o1 model.
+   * @returns {boolean}
+   */
+  get isO1Model() {
+    return this.model.startsWith("o1");
+  }
+
   #appendContext(contextTexts = []) {
     if (!contextTexts || !contextTexts.length) return "";
     return (
@@ -35,26 +44,16 @@ class OpenAiLLM {
   }
 
   streamingEnabled() {
+    if (this.isO1Model) return false;
     return "streamGetChatCompletion" in this;
   }
 
+  static promptWindowLimit(modelName) {
+    return MODEL_MAP.openai[modelName] ?? 4_096;
+  }
+
   promptWindowLimit() {
-    switch (this.model) {
-      case "gpt-3.5-turbo":
-      case "gpt-3.5-turbo-1106":
-        return 16_385;
-      case "gpt-4o":
-      case "gpt-4-turbo":
-      case "gpt-4-1106-preview":
-      case "gpt-4-turbo-preview":
-        return 128_000;
-      case "gpt-4":
-        return 8_192;
-      case "gpt-4-32k":
-        return 32_000;
-      default:
-        return 4_096; // assume a fine-tune 3.5?
-    }
+    return MODEL_MAP.openai[this.model] ?? 4_096;
   }
 
   // Short circuit if name has 'gpt' since we now fetch models from OpenAI API
@@ -108,8 +107,11 @@ class OpenAiLLM {
     userPrompt = "",
     attachments = [], // This is the specific attachment for only this prompt
   }) {
+    // o1 Models do not support the "system" role
+    // in order to combat this, we can use the "user" role as a replacement for now
+    // https://community.openai.com/t/o1-models-do-not-support-system-role-in-chat-completion/953880
     const prompt = {
-      role: "system",
+      role: this.isO1Model ? "user" : "system",
       content: `${systemPrompt}${this.#appendContext(contextTexts)}`,
     };
     return [
@@ -132,7 +134,7 @@ class OpenAiLLM {
       .create({
         model: this.model,
         messages,
-        temperature,
+        temperature: this.isO1Model ? 1 : temperature, // o1 models only accept temperature 1
       })
       .catch((e) => {
         throw new Error(e.message);
@@ -153,7 +155,7 @@ class OpenAiLLM {
       model: this.model,
       stream: true,
       messages,
-      temperature,
+      temperature: this.isO1Model ? 1 : temperature, // o1 models only accept temperature 1
     });
     return streamRequest;
   }
